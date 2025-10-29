@@ -87,6 +87,18 @@
       .historial li {
         padding: 5px 0;
         border-bottom: 1px solid #b3e0b5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .historial button {
+        background-color: #ff6b6b;
+        color: white;
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      .historial button:hover {
+        background-color: #ff5252;
       }
       .cierre-resumen {
         margin-top: 20px;
@@ -200,6 +212,12 @@
           <button onclick="realizarCierreCaja()">
             Realizar Cierre de Caja
           </button>
+          <button
+            onclick="reiniciarDatosDia()"
+            style="background-color: #ff6b6b; color: white"
+          >
+            Reiniciar Datos del Día
+          </button>
         </div>
         <p>Total Ventas Efectivo: $<span id="totalEfectivo">0.00</span></p>
         <p>
@@ -216,6 +234,10 @@
             >Balance (Ventas - Gastos): $<span id="balance">0.00</span></strong
           >
         </p>
+        <div class="historial">
+          <h3>Historial de Ventas (Día Seleccionado)</h3>
+          <ul id="historialVentas"></ul>
+        </div>
         <div class="historial">
           <h3>Historial de Gastos (Día Seleccionado)</h3>
           <ul id="historialGastos"></ul>
@@ -248,12 +270,19 @@
               ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
               gastos: 0,
               historialGastos: [],
+              historialVentas: [],
             };
           datosPorDia[fecha].ventas[tipo] += monto;
-          ventas[tipo] += monto; // Para mostrar en pantalla actual
+          datosPorDia[fecha].historialVentas.push({
+            tipo,
+            monto,
+            id: Date.now(),
+          });
+          ventas = { ...datosPorDia[fecha].ventas }; // Actualizar variable global
           input.value = "";
           guardarDatos();
           actualizarTotales();
+          mostrarHistorialVentas(fecha);
         }
       }
 
@@ -269,10 +298,15 @@
               ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
               gastos: 0,
               historialGastos: [],
+              historialVentas: [],
             };
           datosPorDia[fecha].gastos += monto;
-          datosPorDia[fecha].historialGastos.push({ descripcion, monto });
-          gastos += monto; // Para mostrar en pantalla actual
+          datosPorDia[fecha].historialGastos.push({
+            descripcion,
+            monto,
+            id: Date.now(),
+          });
+          gastos = datosPorDia[fecha].gastos; // Actualizar variable global
           inputMonto.value = "";
           inputDesc.value = "";
           guardarDatos();
@@ -306,6 +340,7 @@
         const fecha = document.getElementById("fecha").value;
         if (fecha) {
           cargarDatosDia(fecha);
+          mostrarHistorialVentas(fecha);
           mostrarHistorial(fecha);
           ocultarResumenCierre();
         }
@@ -326,11 +361,51 @@
         const ul = document.getElementById("historialGastos");
         ul.innerHTML = "";
         if (datosPorDia[fecha] && datosPorDia[fecha].historialGastos) {
-          datosPorDia[fecha].historialGastos.forEach((item) => {
+          datosPorDia[fecha].historialGastos.forEach((item, index) => {
             const li = document.createElement("li");
-            li.textContent = `${item.descripcion}: $${item.monto.toFixed(2)}`;
+            li.innerHTML = `${item.descripcion}: $${item.monto.toFixed(
+              2
+            )} <button onclick="eliminarGasto('${fecha}', ${index})">Eliminar</button>`;
             ul.appendChild(li);
           });
+        }
+      }
+
+      function mostrarHistorialVentas(fecha) {
+        const ul = document.getElementById("historialVentas");
+        ul.innerHTML = "";
+        if (datosPorDia[fecha] && datosPorDia[fecha].historialVentas) {
+          datosPorDia[fecha].historialVentas.forEach((item, index) => {
+            const li = document.createElement("li");
+            li.innerHTML = `${
+              item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)
+            }: $${item.monto.toFixed(
+              2
+            )} <button onclick="eliminarVenta('${fecha}', ${index})">Eliminar</button>`;
+            ul.appendChild(li);
+          });
+        }
+      }
+
+      function eliminarVenta(fecha, index) {
+        if (datosPorDia[fecha] && datosPorDia[fecha].historialVentas[index]) {
+          const venta = datosPorDia[fecha].historialVentas[index];
+          datosPorDia[fecha].ventas[venta.tipo] -= venta.monto;
+          datosPorDia[fecha].historialVentas.splice(index, 1);
+          guardarDatos();
+          cargarDatosDia(fecha);
+          mostrarHistorialVentas(fecha);
+        }
+      }
+
+      function eliminarGasto(fecha, index) {
+        if (datosPorDia[fecha] && datosPorDia[fecha].historialGastos[index]) {
+          const gastoItem = datosPorDia[fecha].historialGastos[index];
+          datosPorDia[fecha].gastos -= gastoItem.monto;
+          datosPorDia[fecha].historialGastos.splice(index, 1);
+          guardarDatos();
+          cargarDatosDia(fecha);
+          mostrarHistorial(fecha);
         }
       }
 
@@ -355,13 +430,12 @@
           historialGastos: datosPorDia[fecha]
             ? [...datosPorDia[fecha].historialGastos]
             : [],
+          historialVentas: datosPorDia[fecha]
+            ? [...datosPorDia[fecha].historialVentas]
+            : [],
         };
         guardarCierres();
         mostrarResumenCierre(fecha, totalVentas, gastos, balance);
-        // Opcional: Resetear datos del día para el siguiente
-        // datosPorDia[fecha] = { ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 }, gastos: 0, historialGastos: [] };
-        // guardarDatos();
-        // cargarDatosDia(fecha);
       }
 
       function mostrarResumenCierre(fecha, totalVentas, totalGastos, balance) {
@@ -378,6 +452,27 @@
 
       function ocultarResumenCierre() {
         document.getElementById("cierreResumen").style.display = "none";
+      }
+
+      function reiniciarDatosDia() {
+        const fecha = document.getElementById("fecha").value;
+        if (!fecha) {
+          alert("Selecciona una fecha para reiniciar.");
+          return;
+        }
+        if (
+          confirm(
+            `¿Estás seguro de reiniciar todos los datos del día ${fecha}? Esto eliminará ventas, gastos e historiales, pero no afectará el cierre si ya fue realizado.`
+          )
+        ) {
+          delete datosPorDia[fecha];
+          guardarDatos();
+          cargarDatosDia(fecha);
+          mostrarHistorialVentas(fecha);
+          mostrarHistorial(fecha);
+          ocultarResumenCierre();
+          alert("Datos del día reiniciados.");
+        }
       }
 
       function guardarDatos() {
