@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro de Ventas y Gastos</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #21372b;
+        color: #b3e0b5;
+        line-height: 1.6;
+        font-size: 32px; /* Letra más grande */
+      }
+      header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #logo {
+        max-width: 150px;
+        height: auto;
+      }
+      .container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .section {
+        padding: 15px;
+        border: 1px solid #b3e0b5;
+        border-radius: 8px;
+        background-color: rgba(179, 224, 181, 0.1);
+      }
+      .ventas-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 15px;
+      }
+      .input-group {
+        display: flex;
+        flex-direction: column;
+      }
+      label {
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input {
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #b3e0b5;
+        border-radius: 4px;
+        background-color: #21372b;
+        color: #b3e0b5;
+        font-size: 16px;
+      }
+      button {
+        padding: 8px 12px;
+        background-color: #b3e0b5;
+        color: #21372b;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #a0d4a2;
+      }
+      .totales {
+        font-weight: bold;
+        margin-top: 20px;
+      }
+      /* Responsivo */
+      @media (max-width: 768px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+        .ventas-grid {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+        }
+        body {
+          margin: 10px;
+          font-size: 16px;
+        }
+        button {
+          width: 100%;
+          margin-top: 5px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img id="logo" src="qf.jpg" alt="Logo de tu negocio" />
+      <!-- Reemplaza 'tu-logo.png' con la ruta a tu logo -->
+      <h1>Registro de Ventas y Gastos</h1>
+    </header>
+
+    <div class="container">
+      <div class="section">
+        <h2>Ventas</h2>
+        <div class="ventas-grid">
+          <div class="input-group">
+            <label for="efectivo">Efectivo:</label>
+            <input
+              type="number"
+              id="efectivo"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarVenta('efectivo')">Agregar</button>
+          </div>
+          <div class="input-group">
+            <label for="debito">Débito:</label>
+            <input
+              type="number"
+              id="debito"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarVenta('debito')">Agregar</button>
+          </div>
+          <div class="input-group">
+            <label for="mercadoPago">Mercado Pago:</label>
+            <input
+              type="number"
+              id="mercadoPago"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarVenta('mercadoPago')">Agregar</button>
+          </div>
+          <div class="input-group">
+            <label for="otros">Otros:</label>
+            <input
+              type="number"
+              id="otros"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarVenta('otros')">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section">
+          <h2>Gastos</h2>
+          <div class="input-group">
+            <label for="gasto">Gasto:</label>
+            <input
+              type="number"
+              id="gasto"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarGasto()">Agregar</button>
+          </div>
+        </div>
+
+        <div class="section totales">
+          <h2>Totales</h2>
+          <p>Total Ventas Efectivo: $<span id="totalEfectivo">0.00</span></p>
+          <p>
+            Total Ventas Mercado Pago: $<span id="totalMercadoPago">0.00</span>
+          </p>
+          <p>Total Ventas Débito: $<span id="totalDebito">0.00</span></p>
+          <p>Total Ventas Otros: $<span id="totalOtros">0.00</span></p>
+          <p>
+            <strong>Total Ventas: $<span id="totalVentas">0.00</span></strong>
+          </p>
+          <p>Total Gastos: $<span id="totalGastos">0.00</span></p>
+          <p>
+            <strong
+              >Balance (Ventas - Gastos): $<span id="balance"
+                >0.00</span
+              ></strong
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let ventas = { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 };
+      let gastos = 0;
+
+      function agregarVenta(tipo) {
+        const input = document.getElementById(tipo);
+        const monto = parseFloat(input.value);
+        if (!isNaN(monto) && monto > 0) {
+          ventas[tipo] += monto;
+          input.value = "";
+          actualizarTotales();
+        }
+      }
+
+      function agregarGasto() {
+        const input = document.getElementById("gasto");
+        const monto = parseFloat(input.value);
+        if (!isNaN(monto) && monto > 0) {
+          gastos += monto;
+          input.value = "";
+          actualizarTotales();
+        }
+      }
+
+      function actualizarTotales() {
+        document.getElementById("totalEfectivo").textContent =
+          ventas.efectivo.toFixed(2);
+        document.getElementById("totalMercadoPago").textContent =
+          ventas.mercadoPago.toFixed(2);
+        document.getElementById("totalDebito").textContent =
+          ventas.debito.toFixed(2);
+        document.getElementById("totalOtros").textContent =
+          ventas.otros.toFixed(2);
+        const totalVentas =
+          ventas.efectivo + ventas.mercadoPago + ventas.debito + ventas.otros;
+        document.getElementById("totalVentas").textContent =
+          totalVentas.toFixed(2);
+        document.getElementById("totalGastos").textContent = gastos.toFixed(2);
+        document.getElementById("balance").textContent = (
+          totalVentas - gastos
+        ).toFixed(2);
+      }
+    </script>
+  </body>
+</html>
