@@ -72,6 +72,28 @@
         font-weight: bold;
         margin-top: 20px;
       }
+      .fecha-selector {
+        margin-bottom: 15px;
+      }
+      .historial {
+        margin-top: 20px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .historial ul {
+        list-style: none;
+        padding: 0;
+      }
+      .historial li {
+        padding: 5px 0;
+        border-bottom: 1px solid #b3e0b5;
+      }
+      .cierre-resumen {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: rgba(179, 224, 181, 0.2);
+        border-radius: 4px;
+      }
       /* Responsivo */
       @media (max-width: 768px) {
         .container {
@@ -148,43 +170,59 @@
             <button onclick="agregarVenta('otros')">Agregar</button>
           </div>
         </div>
+
+        <h2>Gastos</h2>
+        <div class="input-group">
+          <label for="descripcionGasto">Descripción del Gasto:</label>
+          <input
+            type="text"
+            id="descripcionGasto"
+            placeholder="Ej: Alquiler, Comida, etc."
+          />
+          <label for="gasto">Monto:</label>
+          <input
+            type="number"
+            id="gasto"
+            placeholder="Monto"
+            min="0"
+            step="0.01"
+          />
+          <button onclick="agregarGasto()">Agregar</button>
+        </div>
       </div>
 
-      <div>
-        <div class="section">
-          <h2>Gastos</h2>
-          <div class="input-group">
-            <label for="gasto">Gasto:</label>
-            <input
-              type="number"
-              id="gasto"
-              placeholder="Monto"
-              min="0"
-              step="0.01"
-            />
-            <button onclick="agregarGasto()">Agregar</button>
-          </div>
+      <div class="section totales">
+        <h2>Totales</h2>
+        <div class="fecha-selector">
+          <label for="fecha">Seleccionar Fecha para Balance:</label>
+          <input type="date" id="fecha" />
+          <button onclick="mostrarBalancePorDia()">Mostrar Balance</button>
+          <button onclick="realizarCierreCaja()">
+            Realizar Cierre de Caja
+          </button>
         </div>
-
-        <div class="section totales">
-          <h2>Totales</h2>
-          <p>Total Ventas Efectivo: $<span id="totalEfectivo">0.00</span></p>
-          <p>
-            Total Ventas Mercado Pago: $<span id="totalMercadoPago">0.00</span>
-          </p>
-          <p>Total Ventas Débito: $<span id="totalDebito">0.00</span></p>
-          <p>Total Ventas Otros: $<span id="totalOtros">0.00</span></p>
-          <p>
-            <strong>Total Ventas: $<span id="totalVentas">0.00</span></strong>
-          </p>
-          <p>Total Gastos: $<span id="totalGastos">0.00</span></p>
-          <p>
-            <strong
-              >Balance (Ventas - Gastos): $<span id="balance"
-                >0.00</span
-              ></strong
-            >
-          </p>
+        <p>Total Ventas Efectivo: $<span id="totalEfectivo">0.00</span></p>
+        <p>
+          Total Ventas Mercado Pago: $<span id="totalMercadoPago">0.00</span>
+        </p>
+        <p>Total Ventas Débito: $<span id="totalDebito">0.00</span></p>
+        <p>Total Ventas Otros: $<span id="totalOtros">0.00</span></p>
+        <p>
+          <strong>Total Ventas: $<span id="totalVentas">0.00</span></strong>
+        </p>
+        <p>Total Gastos: $<span id="totalGastos">0.00</span></p>
+        <p>
+          <strong
+            >Balance (Ventas - Gastos): $<span id="balance">0.00</span></strong
+          >
+        </p>
+        <div class="historial">
+          <h3>Historial de Gastos (Día Seleccionado)</h3>
+          <ul id="historialGastos"></ul>
+        </div>
+        <div class="cierre-resumen" id="cierreResumen" style="display: none">
+          <h3>Resumen del Cierre de Caja</h3>
+          <p id="resumenTexto"></p>
         </div>
       </div>
     </div>
@@ -192,24 +230,56 @@
     <script>
       let ventas = { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 };
       let gastos = 0;
+      let datosPorDia = JSON.parse(localStorage.getItem("datosPorDia")) || {};
+      let cierres = JSON.parse(localStorage.getItem("cierres")) || {};
+
+      // Cargar datos del día actual al inicio
+      const hoy = new Date().toISOString().split("T")[0];
+      document.getElementById("fecha").value = hoy;
+      cargarDatosDia(hoy);
 
       function agregarVenta(tipo) {
         const input = document.getElementById(tipo);
         const monto = parseFloat(input.value);
         if (!isNaN(monto) && monto > 0) {
-          ventas[tipo] += monto;
+          const fecha = document.getElementById("fecha").value || hoy;
+          if (!datosPorDia[fecha])
+            datosPorDia[fecha] = {
+              ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
+              gastos: 0,
+              historialGastos: [],
+            };
+          datosPorDia[fecha].ventas[tipo] += monto;
+          ventas[tipo] += monto; // Para mostrar en pantalla actual
           input.value = "";
+          guardarDatos();
           actualizarTotales();
         }
       }
 
       function agregarGasto() {
-        const input = document.getElementById("gasto");
-        const monto = parseFloat(input.value);
-        if (!isNaN(monto) && monto > 0) {
-          gastos += monto;
-          input.value = "";
+        const inputMonto = document.getElementById("gasto");
+        const inputDesc = document.getElementById("descripcionGasto");
+        const monto = parseFloat(inputMonto.value);
+        const descripcion = inputDesc.value.trim();
+        if (!isNaN(monto) && monto > 0 && descripcion) {
+          const fecha = document.getElementById("fecha").value || hoy;
+          if (!datosPorDia[fecha])
+            datosPorDia[fecha] = {
+              ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
+              gastos: 0,
+              historialGastos: [],
+            };
+          datosPorDia[fecha].gastos += monto;
+          datosPorDia[fecha].historialGastos.push({ descripcion, monto });
+          gastos += monto; // Para mostrar en pantalla actual
+          inputMonto.value = "";
+          inputDesc.value = "";
+          guardarDatos();
           actualizarTotales();
+          mostrarHistorial(fecha);
+        } else {
+          alert("Ingresa un monto válido y una descripción.");
         }
       }
 
@@ -230,6 +300,92 @@
         document.getElementById("balance").textContent = (
           totalVentas - gastos
         ).toFixed(2);
+      }
+
+      function mostrarBalancePorDia() {
+        const fecha = document.getElementById("fecha").value;
+        if (fecha) {
+          cargarDatosDia(fecha);
+          mostrarHistorial(fecha);
+          ocultarResumenCierre();
+        }
+      }
+
+      function cargarDatosDia(fecha) {
+        if (datosPorDia[fecha]) {
+          ventas = { ...datosPorDia[fecha].ventas };
+          gastos = datosPorDia[fecha].gastos;
+        } else {
+          ventas = { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 };
+          gastos = 0;
+        }
+        actualizarTotales();
+      }
+
+      function mostrarHistorial(fecha) {
+        const ul = document.getElementById("historialGastos");
+        ul.innerHTML = "";
+        if (datosPorDia[fecha] && datosPorDia[fecha].historialGastos) {
+          datosPorDia[fecha].historialGastos.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = `${item.descripcion}: $${item.monto.toFixed(2)}`;
+            ul.appendChild(li);
+          });
+        }
+      }
+
+      function realizarCierreCaja() {
+        const fecha = document.getElementById("fecha").value;
+        if (!fecha) {
+          alert("Selecciona una fecha para el cierre.");
+          return;
+        }
+        if (cierres[fecha]) {
+          alert("El cierre de caja para esta fecha ya fue realizado.");
+          return;
+        }
+        const totalVentas =
+          ventas.efectivo + ventas.mercadoPago + ventas.debito + ventas.otros;
+        const balance = totalVentas - gastos;
+        cierres[fecha] = {
+          totalVentas,
+          totalGastos: gastos,
+          balance,
+          ventas: { ...ventas },
+          historialGastos: datosPorDia[fecha]
+            ? [...datosPorDia[fecha].historialGastos]
+            : [],
+        };
+        guardarCierres();
+        mostrarResumenCierre(fecha, totalVentas, gastos, balance);
+        // Opcional: Resetear datos del día para el siguiente
+        // datosPorDia[fecha] = { ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 }, gastos: 0, historialGastos: [] };
+        // guardarDatos();
+        // cargarDatosDia(fecha);
+      }
+
+      function mostrarResumenCierre(fecha, totalVentas, totalGastos, balance) {
+        const resumen = document.getElementById("resumenTexto");
+        resumen.innerHTML = `
+          <strong>Fecha:</strong> ${fecha}<br>
+          <strong>Total Ventas:</strong> $${totalVentas.toFixed(2)}<br>
+          <strong>Total Gastos:</strong> $${totalGastos.toFixed(2)}<br>
+          <strong>Balance:</strong> $${balance.toFixed(2)}<br>
+          <em>Cierre realizado exitosamente.</em>
+        `;
+        document.getElementById("cierreResumen").style.display = "block";
+      }
+
+      function ocultarResumenCierre() {
+        document.getElementById("cierreResumen").style.display = "none";
+      }
+
+      function guardarDatos() {
+        localStorage.setItem("datosPorDia", JSON.stringify(datosPorDia));
+      }
+
+      function guardarCierres() {
+        localStorage.setItem("cierres", JSON.stringify(cierres));
       }
     </script>
   </body>
