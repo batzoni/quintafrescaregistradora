@@ -1,0 +1,120 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #21372b;
+  color: #b3e0b5;
+  line-height: 1.6;
+  font-size: 32px; /* Letra más grande */
+}
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+#logo {
+  max-width: 500px;
+  height: 100;
+}
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.section {
+  padding: 15px;
+  border: 1px solid #b3e0b5;
+  border-radius: 8px;
+  background-color: rgba(179, 224, 181, 0.1);
+}
+.ventas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 15px;
+}
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+input {
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #b3e0b5;
+  border-radius: 4px;
+  background-color: #21372b;
+  color: #b3e0b5;
+  font-size: 16px;
+}
+button {
+  padding: 8px 12px;
+  background-color: #b3e0b5;
+  color: #21372b;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+}
+button:hover {
+  background-color: #a0d4a2;
+}
+.totales {
+  font-weight: bold;
+  margin-top: 20px;
+}
+.fecha-selector {
+  margin-bottom: 15px;
+}
+.historial {
+  margin-top: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.historial ul {
+  list-style: none;
+  padding: 0;
+}
+.historial li {
+  padding: 5px 0;
+  border-bottom: 1px solid #b3e0b5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.historial button {
+  background-color: #ff6b6b;
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.historial button:hover {
+  background-color: #ff5252;
+}
+.cierre-resumen {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: rgba(179, 224, 181, 0.2);
+  border-radius: 4px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  .ventas-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+  body {
+    margin: 10px;
+    font-size: 16px;
+  }
+  button {
+    width: 100%;
+    margin-top: 5px;
+  }
+}

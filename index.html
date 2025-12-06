@@ -4,127 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Registro de Ventas y Gastos</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        background-color: #21372b;
-        color: #b3e0b5;
-        line-height: 1.6;
-        font-size: 32px; /* Letra más grande */
-      }
-      header {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      #logo {
-        max-width: 150px;
-        height: auto;
-      }
-      .container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-      }
-      .section {
-        padding: 15px;
-        border: 1px solid #b3e0b5;
-        border-radius: 8px;
-        background-color: rgba(179, 224, 181, 0.1);
-      }
-      .ventas-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
-        gap: 15px;
-      }
-      .input-group {
-        display: flex;
-        flex-direction: column;
-      }
-      label {
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-      input {
-        padding: 8px;
-        margin-bottom: 10px;
-        border: 1px solid #b3e0b5;
-        border-radius: 4px;
-        background-color: #21372b;
-        color: #b3e0b5;
-        font-size: 16px;
-      }
-      button {
-        padding: 8px 12px;
-        background-color: #b3e0b5;
-        color: #21372b;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 16px;
-      }
-      button:hover {
-        background-color: #a0d4a2;
-      }
-      .totales {
-        font-weight: bold;
-        margin-top: 20px;
-      }
-      .fecha-selector {
-        margin-bottom: 15px;
-      }
-      .historial {
-        margin-top: 20px;
-        max-height: 200px;
-        overflow-y: auto;
-      }
-      .historial ul {
-        list-style: none;
-        padding: 0;
-      }
-      .historial li {
-        padding: 5px 0;
-        border-bottom: 1px solid #b3e0b5;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .historial button {
-        background-color: #ff6b6b;
-        color: white;
-        font-size: 12px;
-        padding: 4px 8px;
-      }
-      .historial button:hover {
-        background-color: #ff5252;
-      }
-      .cierre-resumen {
-        margin-top: 20px;
-        padding: 10px;
-        background-color: rgba(179, 224, 181, 0.2);
-        border-radius: 4px;
-      }
-      /* Responsivo */
-      @media (max-width: 768px) {
-        .container {
-          grid-template-columns: 1fr;
-        }
-        .ventas-grid {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto auto auto;
-        }
-        body {
-          margin: 10px;
-          font-size: 16px;
-        }
-        button {
-          width: 100%;
-          margin-top: 5px;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header>
@@ -171,7 +51,18 @@
             <button onclick="agregarVenta('mercadoPago')">Agregar</button>
           </div>
           <div class="input-group">
-            <label for="otros">Otros:</label>
+            <label for="cuentaDni">Cuenta DNI:</label>
+            <input
+              type="number"
+              id="cuentaDni"
+              placeholder="Monto"
+              min="0"
+              step="0.01"
+            />
+            <button onclick="agregarVenta('cuentaDni')">Agregar</button>
+          </div>
+          <div class="input-group">
+            <label for="otros">Pedidos:</label>
             <input
               type="number"
               id="otros"
@@ -224,9 +115,13 @@
           Total Ventas Mercado Pago: $<span id="totalMercadoPago">0.00</span>
         </p>
         <p>Total Ventas Débito: $<span id="totalDebito">0.00</span></p>
-        <p>Total Ventas Otros: $<span id="totalOtros">0.00</span></p>
+        <p>Total Ventas Cuenta DNI: $<span id="totalCuentaDni">0.00</span></p>
+        <p>Total Ventas Pedidos: $<span id="totalOtros">0.00</span></p>
         <p>
           <strong>Total Ventas: $<span id="totalVentas">0.00</span></strong>
+        </p>
+        <p>
+          Total de Ventas (Cantidad): <span id="totalCantidadVentas">0</span>
         </p>
         <p>Total Gastos: $<span id="totalGastos">0.00</span></p>
         <p>
@@ -249,239 +144,6 @@
       </div>
     </div>
 
-    <script>
-      let ventas = { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 };
-      let gastos = 0;
-      let datosPorDia = JSON.parse(localStorage.getItem("datosPorDia")) || {};
-      let cierres = JSON.parse(localStorage.getItem("cierres")) || {};
-
-      // Cargar datos del día actual al inicio
-      const hoy = new Date().toISOString().split("T")[0];
-      document.getElementById("fecha").value = hoy;
-      cargarDatosDia(hoy);
-
-      function agregarVenta(tipo) {
-        const input = document.getElementById(tipo);
-        const monto = parseFloat(input.value);
-        if (!isNaN(monto) && monto > 0) {
-          const fecha = document.getElementById("fecha").value || hoy;
-          if (!datosPorDia[fecha])
-            datosPorDia[fecha] = {
-              ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
-              gastos: 0,
-              historialGastos: [],
-              historialVentas: [],
-            };
-          datosPorDia[fecha].ventas[tipo] += monto;
-          datosPorDia[fecha].historialVentas.push({
-            tipo,
-            monto,
-            id: Date.now(),
-          });
-          ventas = { ...datosPorDia[fecha].ventas }; // Actualizar variable global
-          input.value = "";
-          guardarDatos();
-          actualizarTotales();
-          mostrarHistorialVentas(fecha);
-        }
-      }
-
-      function agregarGasto() {
-        const inputMonto = document.getElementById("gasto");
-        const inputDesc = document.getElementById("descripcionGasto");
-        const monto = parseFloat(inputMonto.value);
-        const descripcion = inputDesc.value.trim();
-        if (!isNaN(monto) && monto > 0 && descripcion) {
-          const fecha = document.getElementById("fecha").value || hoy;
-          if (!datosPorDia[fecha])
-            datosPorDia[fecha] = {
-              ventas: { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 },
-              gastos: 0,
-              historialGastos: [],
-              historialVentas: [],
-            };
-          datosPorDia[fecha].gastos += monto;
-          datosPorDia[fecha].historialGastos.push({
-            descripcion,
-            monto,
-            id: Date.now(),
-          });
-          gastos = datosPorDia[fecha].gastos; // Actualizar variable global
-          inputMonto.value = "";
-          inputDesc.value = "";
-          guardarDatos();
-          actualizarTotales();
-          mostrarHistorial(fecha);
-        } else {
-          alert("Ingresa un monto válido y una descripción.");
-        }
-      }
-
-      function actualizarTotales() {
-        document.getElementById("totalEfectivo").textContent =
-          ventas.efectivo.toFixed(2);
-        document.getElementById("totalMercadoPago").textContent =
-          ventas.mercadoPago.toFixed(2);
-        document.getElementById("totalDebito").textContent =
-          ventas.debito.toFixed(2);
-        document.getElementById("totalOtros").textContent =
-          ventas.otros.toFixed(2);
-        const totalVentas =
-          ventas.efectivo + ventas.mercadoPago + ventas.debito + ventas.otros;
-        document.getElementById("totalVentas").textContent =
-          totalVentas.toFixed(2);
-        document.getElementById("totalGastos").textContent = gastos.toFixed(2);
-        document.getElementById("balance").textContent = (
-          totalVentas - gastos
-        ).toFixed(2);
-      }
-
-      function mostrarBalancePorDia() {
-        const fecha = document.getElementById("fecha").value;
-        if (fecha) {
-          cargarDatosDia(fecha);
-          mostrarHistorialVentas(fecha);
-          mostrarHistorial(fecha);
-          ocultarResumenCierre();
-        }
-      }
-
-      function cargarDatosDia(fecha) {
-        if (datosPorDia[fecha]) {
-          ventas = { ...datosPorDia[fecha].ventas };
-          gastos = datosPorDia[fecha].gastos;
-        } else {
-          ventas = { efectivo: 0, mercadoPago: 0, debito: 0, otros: 0 };
-          gastos = 0;
-        }
-        actualizarTotales();
-      }
-
-      function mostrarHistorial(fecha) {
-        const ul = document.getElementById("historialGastos");
-        ul.innerHTML = "";
-        if (datosPorDia[fecha] && datosPorDia[fecha].historialGastos) {
-          datosPorDia[fecha].historialGastos.forEach((item, index) => {
-            const li = document.createElement("li");
-            li.innerHTML = `${item.descripcion}: $${item.monto.toFixed(
-              2
-            )} <button onclick="eliminarGasto('${fecha}', ${index})">Eliminar</button>`;
-            ul.appendChild(li);
-          });
-        }
-      }
-
-      function mostrarHistorialVentas(fecha) {
-        const ul = document.getElementById("historialVentas");
-        ul.innerHTML = "";
-        if (datosPorDia[fecha] && datosPorDia[fecha].historialVentas) {
-          datosPorDia[fecha].historialVentas.forEach((item, index) => {
-            const li = document.createElement("li");
-            li.innerHTML = `${
-              item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)
-            }: $${item.monto.toFixed(
-              2
-            )} <button onclick="eliminarVenta('${fecha}', ${index})">Eliminar</button>`;
-            ul.appendChild(li);
-          });
-        }
-      }
-
-      function eliminarVenta(fecha, index) {
-        if (datosPorDia[fecha] && datosPorDia[fecha].historialVentas[index]) {
-          const venta = datosPorDia[fecha].historialVentas[index];
-          datosPorDia[fecha].ventas[venta.tipo] -= venta.monto;
-          datosPorDia[fecha].historialVentas.splice(index, 1);
-          guardarDatos();
-          cargarDatosDia(fecha);
-          mostrarHistorialVentas(fecha);
-        }
-      }
-
-      function eliminarGasto(fecha, index) {
-        if (datosPorDia[fecha] && datosPorDia[fecha].historialGastos[index]) {
-          const gastoItem = datosPorDia[fecha].historialGastos[index];
-          datosPorDia[fecha].gastos -= gastoItem.monto;
-          datosPorDia[fecha].historialGastos.splice(index, 1);
-          guardarDatos();
-          cargarDatosDia(fecha);
-          mostrarHistorial(fecha);
-        }
-      }
-
-      function realizarCierreCaja() {
-        const fecha = document.getElementById("fecha").value;
-        if (!fecha) {
-          alert("Selecciona una fecha para el cierre.");
-          return;
-        }
-        if (cierres[fecha]) {
-          alert("El cierre de caja para esta fecha ya fue realizado.");
-          return;
-        }
-        const totalVentas =
-          ventas.efectivo + ventas.mercadoPago + ventas.debito + ventas.otros;
-        const balance = totalVentas - gastos;
-        cierres[fecha] = {
-          totalVentas,
-          totalGastos: gastos,
-          balance,
-          ventas: { ...ventas },
-          historialGastos: datosPorDia[fecha]
-            ? [...datosPorDia[fecha].historialGastos]
-            : [],
-          historialVentas: datosPorDia[fecha]
-            ? [...datosPorDia[fecha].historialVentas]
-            : [],
-        };
-        guardarCierres();
-        mostrarResumenCierre(fecha, totalVentas, gastos, balance);
-      }
-
-      function mostrarResumenCierre(fecha, totalVentas, totalGastos, balance) {
-        const resumen = document.getElementById("resumenTexto");
-        resumen.innerHTML = `
-          <strong>Fecha:</strong> ${fecha}<br>
-          <strong>Total Ventas:</strong> $${totalVentas.toFixed(2)}<br>
-          <strong>Total Gastos:</strong> $${totalGastos.toFixed(2)}<br>
-          <strong>Balance:</strong> $${balance.toFixed(2)}<br>
-          <em>Cierre realizado exitosamente.</em>
-        `;
-        document.getElementById("cierreResumen").style.display = "block";
-      }
-
-      function ocultarResumenCierre() {
-        document.getElementById("cierreResumen").style.display = "none";
-      }
-
-      function reiniciarDatosDia() {
-        const fecha = document.getElementById("fecha").value;
-        if (!fecha) {
-          alert("Selecciona una fecha para reiniciar.");
-          return;
-        }
-        if (
-          confirm(
-            `¿Estás seguro de reiniciar todos los datos del día ${fecha}? Esto eliminará ventas, gastos e historiales, pero no afectará el cierre si ya fue realizado.`
-          )
-        ) {
-          delete datosPorDia[fecha];
-          guardarDatos();
-          cargarDatosDia(fecha);
-          mostrarHistorialVentas(fecha);
-          mostrarHistorial(fecha);
-          ocultarResumenCierre();
-          alert("Datos del día reiniciados.");
-        }
-      }
-
-      function guardarDatos() {
-        localStorage.setItem("datosPorDia", JSON.stringify(datosPorDia));
-      }
-
-      function guardarCierres() {
-        localStorage.setItem("cierres", JSON.stringify(cierres));
-      }
-    </script>
+    <script src="script.js"></script>
   </body>
 </html>
